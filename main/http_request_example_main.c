@@ -27,6 +27,7 @@
 #define WEB_PORT "81"
 #define WEB_PATH "/chat3.rar"
 
+#define NUM 1400
 static const char *TAG = "example";
 
 static const char *REQUEST = "GET " WEB_PATH " HTTP/1.0\r\n"
@@ -43,7 +44,7 @@ static void http_get_task(void *pvParameters)
     struct addrinfo *res;
     struct in_addr *addr;
     int s, r;
-    char recv_buf[1400];
+    char recv_buf[NUM];
 
     while(1) {
         int err = getaddrinfo(WEB_SERVER, WEB_PORT, &hints, &res);
@@ -105,10 +106,23 @@ static void http_get_task(void *pvParameters)
         int sx2=0;
         do {
           //  bzero(recv_buf, sizeof(recv_buf));
-            r = read(s, recv_buf, sizeof(recv_buf)-1);
-//            for(int i = 0; i < r; i++) {
-//                putchar(recv_buf[i]);
-//            }
+            r = read(s, recv_buf, NUM);
+            if(sx2==0){
+                if(r>5){
+                    for(int i = 0; i < r-4; i++) {
+                        if(recv_buf[i]=='\r'){
+                            if(recv_buf[i+1]=='\n'){
+                                if(recv_buf[i+2]=='\r'){
+                                    if(recv_buf[i+3]=='\n'){
+                                        sx=sx-i-4;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             sx+=r;
             sx2++;
             if(sx2%70==0){
@@ -116,7 +130,7 @@ static void http_get_task(void *pvParameters)
             }
 
         } while(r > 0);
-
+        ESP_LOGE("receive","%d",sx);
         ESP_LOGI(TAG, "... done reading from socket. Last read return=%d errno=%d.", r, errno);
         close(s);
         for(int countdown = 10; countdown >= 0; countdown--) {
